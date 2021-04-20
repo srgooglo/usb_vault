@@ -1,4 +1,7 @@
 node_modules
 dist
 .aliaser
-logs_dump.logs
+logs_dump.log
+yarn.lock
+logs_dump.log
+package-lock.json

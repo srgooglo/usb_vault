@@ -1,1 +1,7 @@
 > 2021-04-20T14:04:35.513Z [Module._compile][info] : The "iv" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received undefined
+> 2021-04-20T18:44:53.693Z [Module._compile][info] : Cannot find module 'corenode/utils'
+Require stack:
+- /home/srgooglo/repos/usb_vault/dist/index.js
+- /home/srgooglo/.nvm/versions/node/v15.14.0/lib/node_modules/corenode/dist/index.js
+- /home/srgooglo/.nvm/versions/node/v15.14.0/lib/node_modules/corenode/node_modules/@corenode/cli/bin/index.js
+- /home/srgooglo/.nvm/versions/node/v15.14.0/lib/node_modules/corenode/bin.js

@@ -1,10 +1,8 @@
 import path from 'path'
 import fs from 'fs'
-import usb from 'usb'
 
 import crypto from 'crypto'
-import bcrypt from 'bcrypt'
-import md5 from 'md5'
+import { prettyTable } from '@corenode/utils'
 
 const algorithm = 'aes-256-cbc'
 const runtime = process.runtime[0]
@@ -15,9 +13,8 @@ const operation = argvc[1]
 const ivFile = "iv.json"
 const blockFile = "map.json"
 const supportedBusTypes = ["usb"]
-const libDevicesList = usb.getDeviceList()
-
 const genIV = crypto.randomBytes(16)
+
 
 function initDevice(device) {
 
@@ -125,9 +122,7 @@ function getDevices() {
                     const { busType } = drive
                     const supported = supportedBusTypes.some(type => type.toLowerCase() === busType.toLowerCase())
 
-                    if (supported) {
-                        devices.push({ supported, ...drive })
-                    }
+                    devices.push({ supported, ...drive })
                 })
                 return resolve(devices)
             })
@@ -144,6 +139,7 @@ function exitErr(err) {
 
 async function init() {
     if (typeof (operation) !== "string") {
+        console.log("Doing nothing :D")
         return process.exit(0)
     }
 
@@ -153,6 +149,21 @@ async function init() {
             const hexKey = key.toString("hex")
 
             console.log(hexKey)
+            break
+        }
+        case "devices": {
+            const headers = ["device", "description", "mount[0]", "type", "supported"]
+            let rows = []
+
+            getDevices()
+                .then((data) => {
+                    data.forEach((drive) => {
+                        rows.push([drive.device, drive.description, drive.mountpoints[0].label, drive.busType, drive.supported])
+                    })
+                    const pt = new prettyTable()
+                    pt.create(headers, rows)
+                    pt.print()
+                })
             break
         }
         case "read": {
@@ -205,7 +216,6 @@ async function init() {
         default:
             throw new Error("⛔️ Invalid operation")
     }
-
 }
 
 init()
