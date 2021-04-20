@@ -15,6 +15,7 @@ const blockFile = "map.json"
 const supportedBusTypes = ["usb"]
 const genIV = crypto.randomBytes(16)
 
+let masterKey = ""
 
 function initDevice(device) {
 
@@ -143,6 +144,14 @@ async function init() {
         return process.exit(0)
     }
 
+    if (args.keyFile) {
+        try {
+            masterKey = fs.readFileSync(path.resolve(args.keyFile)).toString()
+        } catch (error) {
+            console.log(`Key file invalid >> ${error.message}`)
+        }
+    }
+
     switch (operation) {
         case "gen-key": {
             const key = crypto.randomBytes(32)
@@ -152,24 +161,30 @@ async function init() {
             break
         }
         case "devices": {
+            const deviceID = args.device
             const headers = ["device", "description", "mount[0]", "type", "supported"]
             let rows = []
 
             getDevices()
                 .then((data) => {
-                    data.forEach((drive) => {
-                        rows.push([drive.device, drive.description, drive.mountpoints[0].label, drive.busType, drive.supported])
-                    })
-                    const pt = new prettyTable()
-                    pt.create(headers, rows)
-                    pt.print()
+                    if (deviceID) {
+                        findDriveMount(deviceID).then((device) => {
+                            console.log(device)
+                        })
+                    } else {
+                        data.forEach((drive) => {
+                            rows.push([drive.device, drive.description, drive.mountpoints[0].label, drive.busType, drive.supported])
+                        })
+                        const pt = new prettyTable()
+                        pt.create(headers, rows)
+                        pt.print()
+                    }
                 })
             break
         }
         case "read": {
             const device = argvc[2]
             const block = argvc[3]
-            const key = argvc[4]
 
             const mountpoint = await findDriveMount(device).catch(() => {
                 return exitErr(`No devices founded with ID [${device}]`)
@@ -178,14 +193,14 @@ async function init() {
             readBlock({
                 mount: mountpoint.path,
                 block: block,
-                key: key
+                key: masterKey
             })
                 .then((data) => {
                     console.log(`\nDONE! >>`)
                     console.log(`\n${data}\n`)
                 })
                 .catch((err) => {
-                    console.error(error)
+                    console.error(err)
                 })
             break
         }
@@ -199,14 +214,14 @@ async function init() {
                 mount: mountpoint.path,
                 block: args.block,
                 content: args.content,
-                key: args.key
+                key: masterKey
             })
                 .then((data) => {
                     // TODO: "Add `iv`, `blockID` information"
                     console.log(`Done!`)
                 })
                 .catch((err) => {
-                    console.error(error)
+                    console.error(err)
                 })
             break
         }
