@@ -5,3 +5,4 @@ logs_dump.log
 yarn.lock
 logs_dump.log
 package-lock.json
+.out.txt

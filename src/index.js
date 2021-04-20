@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs'
+import open from 'open'
 
 import crypto from 'crypto'
 import { prettyTable } from '@corenode/utils'
@@ -123,6 +124,15 @@ function getDevices() {
                     const { busType } = drive
                     const supported = supportedBusTypes.some(type => type.toLowerCase() === busType.toLowerCase())
 
+                    if (process.platform == "win32") {
+                        drive.mountpoints.forEach((mnt, index) => {
+                            drive.mountpoints[index] = {
+                                path: mnt.path,
+                                label: mnt.path
+                            }
+                        })
+                    }
+
                     devices.push({ supported, ...drive })
                 })
                 return resolve(devices)
@@ -173,7 +183,8 @@ async function init() {
                         })
                     } else {
                         data.forEach((drive) => {
-                            rows.push([drive.device, drive.description, drive.mountpoints[0].label, drive.busType, drive.supported])
+                            const mnt = drive.mountpoints[0] ?? {}
+                            rows.push([drive.device, drive.description, mnt.label ?? "none", drive.busType, drive.supported])
                         })
                         const pt = new prettyTable()
                         pt.create(headers, rows)
@@ -196,8 +207,24 @@ async function init() {
                 key: masterKey
             })
                 .then((data) => {
-                    console.log(`\nDONE! >>`)
-                    console.log(`\n${data}\n`)
+                    if (args.open) {
+                        const tmpFile = path.resolve(process.cwd(),`.out.txt`)
+                        fs.writeFileSync(tmpFile, data)
+
+                        return open(tmpFile)
+                        .then(() => {
+                            setTimeout(() => {
+                                fs.unlinkSync(tmpFile)
+                            }, 1000)
+                        })
+                    }
+                    console.log(`
+                    \nDONE! >>\n
+                    -------------
+                    ${data}
+                    -------------
+                    \n
+                    `)
                 })
                 .catch((err) => {
                     console.error(err)
@@ -217,8 +244,14 @@ async function init() {
                 key: masterKey
             })
                 .then((data) => {
-                    // TODO: "Add `iv`, `blockID` information"
-                    console.log(`Done!`)
+                    console.log(`\n✅  Done!\n`)
+                    const pt = new prettyTable()
+
+                    const headers = ["device", "block", "iv"]
+                    const rows = [[mountpoint.path, data.blockID, data.iv]]
+
+                    pt.create(headers, rows)
+                    pt.print()
                 })
                 .catch((err) => {
                     console.error(err)
