@@ -1,0 +1,19 @@
+{
+  "name": "usb_vault",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "corenode": "^0.19.0",
+    "drivelist": "^9.2.4",
+    "md5": "^2.3.0",
+    "reverse-md5": "0.0.5",
+    "usb": "^1.7.0",
+    "yargs-parser": "^20.2.7"
+  }
+}

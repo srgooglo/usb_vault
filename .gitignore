@@ -1,0 +1,4 @@
+node_modules
+dist
+.aliaser
+logs_dump.logs
