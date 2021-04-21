@@ -90,8 +90,14 @@ export function readMap(mountpoint, map) {
 }
 
 export function addToMap(mountpoint, map, key, value) {
-    const mapData = readMap(mountpoint, map) ?? {}
+    let mapData = readMap(mountpoint, map) ?? {}
     mapData[key] = value
+    fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, `\n`))
+}
+
+export function writeToMap(mountpoint, map, value) {
+    let mapData = readMap(mountpoint, map) ?? {}
+    mapData = value
     fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, `\n`))
 }
 
@@ -164,8 +170,32 @@ export async function init() {
         case "gen-key": {
             const key = crypto.randomBytes(32)
             const hexKey = key.toString("hex")
+            if (args.save) {
+                fs.writeFileSync(path.resolve(args.save), hexKey)
+            }
+            console.log(`New hexKey >>\n ${hexKey}`)
+            break
+        }
+        case "delete": {
+            findDriveMount(args.device).then((device) => {
+                const mount = device.path
+                const block = args.block
 
-            console.log(hexKey)
+                let map = readMap(mount, blockFile)
+
+                if (typeof(map[block]) == "undefined") {
+                    return console.error(`❌  Block [${block}] not exists on device [${args.device}]`)
+                }
+
+                if (args.purge) {
+                    fs.unlinkSync(path.resolve(mount, `block/${map[block]}`))
+                    console.log(`🗑  Removed block [${block} | ${map[block]}] on device [${args.device}]`)
+                }
+     
+                delete map[block]
+                writeToMap(mount, blockFile, map)
+                console.log(`✅  Successfully deleted block [${block}] on device [${args.device}]`)
+            })
             break
         }
         case "blocks": {
