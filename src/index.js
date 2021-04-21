@@ -234,7 +234,7 @@ export async function init() {
 
                 const map = readMap(device.path, blockFile)
                 objectToArrayMap(map).forEach((block) => {
-                    rows.push([block.key, block.value])
+                    rows.push([block.key, block.value.block ?? block.value])
                 })
                 pt.create(headers, rows)
                 pt.print()
@@ -326,9 +326,6 @@ export async function init() {
                 .catch((err) => {
                     console.error(err)
                 })
-            break
-        }
-        case "init": {
             break
         }
         default:
