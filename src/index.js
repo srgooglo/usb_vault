@@ -40,11 +40,25 @@ export function readBlock(payload) {
         try {
             const { mount, block, key } = payload
 
-            const iv = readMap(mount, ivFile)[block]
-            const file = readMap(mount, blockFile)[block]
+            let blockMapEntry = readMap(mount, blockFile)[block]
+            if (blockMapEntry) {
+                if (typeof (blockMapEntry) !== "object") {
+                    blockMapEntry = {
+                        block: blockMapEntry,
+                        iv: undefined
+                    }
+                }
 
-            if (iv && file) {
-                return resolve(decrypt(fs.readFileSync(path.resolve(mount, `block/${file}`), 'utf-8'), key, iv))
+                if (typeof (blockMapEntry.iv) == "undefined") {
+                    const ivMapEntry = readMap(mount, ivFile)[blockMapEntry.block]
+                    blockMapEntry.iv = ivMapEntry
+                    addToMap(mount, blockFile, block, blockMapEntry)
+                }
+
+                const data = fs.readFileSync(path.resolve(mount, `block/${blockMapEntry.block}`), 'utf-8')
+                if (data) {
+                    return resolve(decrypt(data, key, blockMapEntry.iv))
+                }
             }
             return reject(`No valid IV or FILE`)
         } catch (error) {
@@ -62,8 +76,11 @@ export function writeBlock(payload) {
 
             const encryptedBlock = encrypt(content, Buffer.from(key, "hex"))
 
-            addToMap(mount, ivFile, block, encryptedBlock.iv)
-            addToMap(mount, blockFile, block, blockID)
+            addToMap(mount, blockFile, block, {
+                block: blockID,
+                iv: encryptedBlock.iv
+            })
+            addToMap(mount, ivFile, blockID, encryptedBlock.iv)
 
             const blocksPath = path.resolve(mount, `block`)
             const blockPath = path.join(blocksPath, blockID)
@@ -92,13 +109,13 @@ export function readMap(mountpoint, map) {
 export function addToMap(mountpoint, map, key, value) {
     let mapData = readMap(mountpoint, map) ?? {}
     mapData[key] = value
-    fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, `\n`))
+    fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, 2))
 }
 
 export function writeToMap(mountpoint, map, value) {
     let mapData = readMap(mountpoint, map) ?? {}
     mapData = value
-    fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, `\n`))
+    fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, 2))
 }
 
 export function findDriveMount(mnt) {
@@ -176,6 +193,17 @@ export async function init() {
             console.log(`New hexKey >>\n ${hexKey}`)
             break
         }
+        case "link": {
+            findDriveMount(args.device).then((device) => {
+                const mount = device.path
+                const block = args.block
+                const id = args.id
+
+                addToMap(mount, blockFile, id, block)
+                console.log(`✅  Successfully linked block [${block}] on device [${args.device}]`)
+            })
+            break
+        }
         case "delete": {
             findDriveMount(args.device).then((device) => {
                 const mount = device.path
@@ -183,7 +211,7 @@ export async function init() {
 
                 let map = readMap(mount, blockFile)
 
-                if (typeof(map[block]) == "undefined") {
+                if (typeof (map[block]) == "undefined") {
                     return console.error(`❌  Block [${block}] not exists on device [${args.device}]`)
                 }
 
@@ -191,7 +219,7 @@ export async function init() {
                     fs.unlinkSync(path.resolve(mount, `block/${map[block]}`))
                     console.log(`🗑  Removed block [${block} | ${map[block]}] on device [${args.device}]`)
                 }
-     
+
                 delete map[block]
                 writeToMap(mount, blockFile, map)
                 console.log(`✅  Successfully deleted block [${block}] on device [${args.device}]`)
@@ -251,18 +279,17 @@ export async function init() {
             })
                 .then((data) => {
                     if (args.open) {
-                        const tmpFile = path.resolve(process.cwd(),`.out.txt`)
+                        const tmpFile = path.resolve(process.cwd(), `.out.txt`)
                         fs.writeFileSync(tmpFile, data)
 
                         return open(tmpFile)
-                        .then(() => {
-                            setTimeout(() => {
-                                fs.unlinkSync(tmpFile)
-                            }, 1000)
-                        })
+                            .then(() => {
+                                setTimeout(() => {
+                                    fs.unlinkSync(tmpFile)
+                                }, 1000)
+                            })
                     }
-                    console.log(`
-                    \nDONE! >>\n
+                    console.log(`DONE! >>\n
                     -------------
                     ${data}
                     -------------
