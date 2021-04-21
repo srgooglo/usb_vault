@@ -1,4 +1,4 @@
-# 🗄 usb_vault | An block based text-plain encrytion tool
+# 🗄 usb_vault | An block based text-plain encryption tool
 ## ⚠️ Disclaimer ⚠️
 This script is an experimental utility that is subject to an open source license and we cannot be held responsible for possible loss of data and any damage that this utility may cause. Try to protect your data before using this utility (especially if it is not a stable version)
 
