@@ -6,10 +6,9 @@ import crypto from 'crypto'
 import { prettyTable, objectToArrayMap } from '@corenode/utils'
 
 const algorithm = 'aes-256-cbc'
-const runtime = process.runtime[0]
 const args = require('yargs-parser')(process.argv.slice(2))
 const argvc = process.argv.slice(2)
-const operation = argvc[1]
+const operation = argvc[0]
 
 const ivFile = "iv.json"
 const blockFile = "map.json"
@@ -253,6 +252,9 @@ export async function init() {
                             console.log(device)
                         })
                     } else {
+                        if (!Array.isArray(data)) {
+                            return exitErr(`🛑  No devices available`)
+                        }
                         data.forEach((drive) => {
                             const mnt = drive.mountpoints[0] ?? {}
                             rows.push([drive.device, drive.description, mnt.label ?? "none", drive.busType, drive.supported])
@@ -265,8 +267,8 @@ export async function init() {
             break
         }
         case "read": {
-            const device = argvc[2]
-            const block = argvc[3]
+            const device = argvc[1]
+            const block = argvc[2]
 
             const mountpoint = await findDriveMount(device).catch(() => {
                 return exitErr(`No devices founded with ID [${device}]`)

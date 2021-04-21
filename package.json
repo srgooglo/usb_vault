@@ -2,8 +2,15 @@
   "name": "usb_vault",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "bin": {
+    "usbvault": "dist/bin.js"
+  },
   "scripts": {
-    "start": "node dist/"
+    "pack:win": "nexe -i dist/bin.js -o build/usbvault_win -t win32 -b --verbose",
+    "pack:darwin": "nexe -i dist/bin.js -o build/usbvault_darwin -t darwin -b --verbose",
+    "pack:linux": "nexe -i dist/bin.js -o build/usbvault_linux -t linux -b --verbose",
+    "build": "corenode build",
+    "start": "corenode dist/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -16,5 +23,8 @@
     "reverse-md5": "0.0.5",
     "usb": "^1.7.0",
     "yargs-parser": "^20.2.7"
+  },
+  "devDependencies": {
+    "nexe": "^4.0.0-beta.18"
   }
 }

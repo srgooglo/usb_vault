@@ -6,3 +6,4 @@ yarn.lock
 logs_dump.log
 package-lock.json
 .out.txt
+build
