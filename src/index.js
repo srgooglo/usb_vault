@@ -3,7 +3,7 @@ import fs from 'fs'
 import open from 'open'
 
 import crypto from 'crypto'
-import { prettyTable } from '@corenode/utils'
+import { prettyTable, objectToArrayMap } from '@corenode/utils'
 
 const algorithm = 'aes-256-cbc'
 const runtime = process.runtime[0]
@@ -18,11 +18,7 @@ const genIV = crypto.randomBytes(16)
 
 let masterKey = ""
 
-function initDevice(device) {
-
-}
-
-function encrypt(data, key) {
+export function encrypt(data, key) {
     let cipher = crypto.createCipheriv(algorithm, key, genIV)
     const encrypted = Buffer.concat([cipher.update(data), cipher.final()])
 
@@ -32,14 +28,14 @@ function encrypt(data, key) {
     }
 }
 
-function decrypt(data, key, iv) {
+export function decrypt(data, key, iv) {
     let decipher = crypto.createDecipheriv(algorithm, Buffer.from(key, "hex"), Buffer.from(iv, 'hex'))
     const decrypted = Buffer.concat([decipher.update(Buffer.from(data, 'hex')), decipher.final()])
 
     return decrypted.toString()
 }
 
-function readBlock(payload) {
+export function readBlock(payload) {
     return new Promise((resolve, reject) => {
         try {
             const { mount, block, key } = payload
@@ -58,7 +54,7 @@ function readBlock(payload) {
 
 }
 
-function writeBlock(payload) {
+export function writeBlock(payload) {
     return new Promise((resolve, reject) => {
         try {
             const { content, block, mount, key } = payload
@@ -83,21 +79,23 @@ function writeBlock(payload) {
     })
 }
 
-function readMap(mountpoint, map) {
+export function readMap(mountpoint, map) {
+    let data = {}
     try {
-        return JSON.parse(fs.readFileSync(path.resolve(mountpoint, map), 'utf-8'))
+        data = JSON.parse(fs.readFileSync(path.resolve(mountpoint, map), 'utf-8'))
     } catch (error) {
-        return {}
+        console.error(`Failed to read map >> ${error.message}`)
     }
+    return data
 }
 
-function addToMap(mountpoint, map, key, value) {
+export function addToMap(mountpoint, map, key, value) {
     const mapData = readMap(mountpoint, map) ?? {}
     mapData[key] = value
     fs.writeFileSync(path.resolve(mountpoint, map), JSON.stringify(mapData, null, `\n`))
 }
 
-function findDriveMount(mnt) {
+export function findDriveMount(mnt) {
     return new Promise((resolve, reject) => {
         getDevices().then((devices) => {
             devices.forEach((drive) => {
@@ -113,7 +111,7 @@ function findDriveMount(mnt) {
 
 }
 
-function getDevices() {
+export function getDevices() {
     return new Promise((resolve, reject) => {
         try {
             const devices = []
@@ -148,7 +146,7 @@ function exitErr(err) {
     return process.exit(0)
 }
 
-async function init() {
+export async function init() {
     if (typeof (operation) !== "string") {
         console.log("Doing nothing :D")
         return process.exit(0)
@@ -168,6 +166,21 @@ async function init() {
             const hexKey = key.toString("hex")
 
             console.log(hexKey)
+            break
+        }
+        case "blocks": {
+            findDriveMount(args.device).then((device) => {
+                const pt = new prettyTable()
+                const headers = ["🔗 Key", "📦 Block"]
+                const rows = []
+
+                const map = readMap(device.path, blockFile)
+                objectToArrayMap(map).forEach((block) => {
+                    rows.push([block.key, block.value])
+                })
+                pt.create(headers, rows)
+                pt.print()
+            })
             break
         }
         case "devices": {
@@ -265,5 +278,3 @@ async function init() {
             throw new Error("⛔️ Invalid operation")
     }
 }
-
-init()
